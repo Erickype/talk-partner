@@ -1,7 +1,7 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.routes import chat, tts
+from backend.app.routes import chat, tts, talk
 
 app = FastAPI(title="TalkMate Backend", version="1.0")
 
@@ -16,6 +16,7 @@ app.add_middleware(
 # Register routes
 app.include_router(chat.router)
 app.include_router(tts.router)
+app.include_router(talk.router)
 
 @app.get("/")
 def home():
