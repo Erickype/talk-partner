@@ -28,3 +28,23 @@ def generate_reply(user_message: str) -> str:
     # Ollama returns JSON lines if stream=False, otherwise NDJSON if stream=True
     data = response.json()
     return data.get("response") or data.get("text", "")
+
+def clean_model_output(raw_text: str) -> str:
+    """
+    Removes reasoning or system artifacts like '---' and '### Instruction'.
+    Returns only the conversational part.
+    """
+    # Cut off reasoning parts if present
+    if "---" in raw_text:
+        raw_text = raw_text.split("---")[0].strip()
+    if "###" in raw_text:
+        raw_text = raw_text.split("###")[0].strip()
+
+    # Optionally trim strange leading markers or explanations
+    # Sometimes the model starts with "Solution:" etc.
+    unwanted_prefixes = ["Instruction", "Solution", "Reasoning", "Constraints"]
+    for prefix in unwanted_prefixes:
+        if raw_text.startswith(prefix):
+            raw_text = raw_text[len(prefix):].strip()
+
+    return raw_text
