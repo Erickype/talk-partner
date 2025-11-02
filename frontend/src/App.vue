@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { postTalk, type TalkResponse } from './api/talk'
+import VoiceRecorder from './components/VoiceRecorder.vue';
 
 async function sendUserMessage() {
   if (message.value.trim() === '') {
@@ -30,6 +31,7 @@ const error = ref('')
     </small>
     <button type="submit">Send</button>
   </form>
+  <VoiceRecorder />
 </template>
 
 <style scoped></style>
