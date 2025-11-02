@@ -11,7 +11,7 @@ def generate_reply(user_message: str) -> str:
     """
     system_prompt = (
         "You are an English conversation partner helping a B2 learner. "
-        "Reply naturally, correct gently, and ask follow-up questions."
+        "Reply naturally and casual, use short sentences, do not ask follow-up questions."
     )
 
     prompt = f"{system_prompt}\nUser: {user_message}\nAI:"

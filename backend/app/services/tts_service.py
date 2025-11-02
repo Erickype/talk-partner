@@ -20,7 +20,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # --- Load model once ---
 print("🔊 Loading custom voice...")
 tts_model = NeuTTSAir(
-    backbone_repo="neuphonic/neutts-air",
+    backbone_repo="neuphonic/neutts-air-q4-gguf",
     backbone_device="cpu",
     codec_repo="neuphonic/neucodec",
     codec_device="cpu"
