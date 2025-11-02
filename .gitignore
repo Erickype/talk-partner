@@ -2,3 +2,4 @@ backend/app/vendor/
 /backend/output_audio/
 /backend/ref/
 **/__pycache__/
+**/.env
