@@ -1,7 +1,7 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.routes import chat, tts, talk
+from backend.app.routes import chat, tts, talk, stt
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="TalkMate Backend", version="1.0")
@@ -20,6 +20,7 @@ app.mount("/output_audio", StaticFiles(directory="output_audio"), name="output_a
 app.include_router(chat.router)
 app.include_router(tts.router)
 app.include_router(talk.router)
+app.include_router(stt.router)
 
 @app.get("/")
 def home():
