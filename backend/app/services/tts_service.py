@@ -2,6 +2,7 @@
 import os
 import sys
 import uuid
+import numpy as np
 import soundfile as sf
 
 # Add neutts-air to Python path
@@ -46,3 +47,8 @@ def generate_tts(text: str) -> str:
     print(f"✅ Saved to: {output_path}")
 
     return output_path
+
+def stream_tts(text: str):
+    for chunk in tts_model.infer_stream(text, ref_codes, ref_text):
+        audio = (chunk * 32767).astype(np.int16)
+        yield audio.tobytes()
