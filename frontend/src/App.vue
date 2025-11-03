@@ -24,13 +24,6 @@ const error = ref('')
 
 <template>
   <h1>AI Talk Partner</h1>
-  <form @submit.prevent="sendUserMessage">
-    <input type="text" v-model="message" name="message" :aria-invalid="!!error || undefined" @input="error = ''">
-    <small v-if="error" class="invalid-helper">
-      {{ error }}
-    </small>
-    <button type="submit">Send</button>
-  </form>
   <VoiceRecorder />
 </template>
 
