@@ -7,10 +7,7 @@
     <p v-if="userText"><strong>You said:</strong> {{ userText }}</p>
     <p v-if="aiText"><strong>AI replied:</strong> {{ aiText }}</p>
 
-    <button
-      @click="sendMessage"
-      class="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
-    >
+    <button @click="sendMessage" class="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600">
       Send Audio
     </button>
 
@@ -70,6 +67,33 @@ function playChunk(buffer: AudioBuffer) {
   nextStartTime += buffer.duration;
 }
 
+/* ---------- Playback Queue with Pre-buffer ---------- */
+let bufferQueue: AudioBuffer[] = [];
+let buffering = true; // initially buffering until ~0.25s of audio is ready
+const PREBUFFER_SECONDS = 5;
+
+function playBufferedAudio() {
+  if (!audioCtx || bufferQueue.length === 0) return;
+
+  // Start scheduling once we have at least 0.25s of audio
+  const totalBuffered = bufferQueue.reduce((sum, b) => sum + b.duration, 0);
+  if (buffering && totalBuffered < PREBUFFER_SECONDS) return;
+
+  buffering = false;
+
+  while (bufferQueue.length > 0) {
+    const buffer = bufferQueue.shift()!;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(audioCtx.destination);
+
+    const current = audioCtx.currentTime;
+    if (nextStartTime < current) nextStartTime = current;
+    src.start(nextStartTime);
+    nextStartTime += buffer.duration;
+  }
+}
+
 /* ---------- WebSocket Handling ---------- */
 function connect() {
   initAudio();
@@ -93,20 +117,24 @@ function connect() {
           break;
         case "audio_start":
           nextStartTime = audioCtx!.currentTime;
+          bufferQueue = [];
+          buffering = true;
           status.value = "Receiving audio…";
           break;
         case "audio_end":
+          playBufferedAudio(); // flush remaining
           status.value = "Playback complete";
           break;
       }
       return;
     }
 
-    // binary data (audio)
+    // Binary PCM audio data
     if (event.data instanceof Blob) {
       const arr = await event.data.arrayBuffer();
       const buf = await pcmToAudioBuffer(arr);
-      playChunk(buf);
+      bufferQueue.push(buf);
+      playBufferedAudio(); // check if enough audio to start
     }
   };
 
