@@ -1,30 +1,25 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { postTalk, type TalkResponse } from './api/talk'
-import VoiceRecorder from './components/VoiceRecorder.vue';
+import { ref } from 'vue'
+import VoiceRecorder from './components/VoiceRecorder.vue'
+import Chat from './components/Chat.vue'
 
-async function sendUserMessage() {
-  if (message.value.trim() === '') {
-    error.value = 'Provide a value';
-    return;
+// Hold the latest captured audio URL (object URL)
+const audioUrl = ref<string | null>(null)
+
+function onAudio(url: string) {
+  // Revoke previous object URL to avoid leaking memory
+  if (audioUrl.value) {
+    try { URL.revokeObjectURL(audioUrl.value) } catch (e) { /* ignore */ }
   }
-
-  const response: TalkResponse = await postTalk(message.value);
-  console.log(response);
-  const audio = new Audio(`http://localhost:8000/output_audio/${response.audio_file}`);
-  audio.play();
-
-  error.value = '';
-  message.value = '';
+  // Save and pass to sibling via prop
+  audioUrl.value = url
 }
-
-const message = ref('')
-const error = ref('')
 </script>
 
 <template>
   <h1>AI Talk Partner</h1>
-  <VoiceRecorder />
+  <VoiceRecorder @audio="onAudio" />
+  <Chat :audioUrl="audioUrl ?? undefined" />
 </template>
 
 <style scoped></style>
