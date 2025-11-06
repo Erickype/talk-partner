@@ -70,25 +70,20 @@ function playChunk(buffer: AudioBuffer) {
 /* ---------- Playback Queue with Pre-buffer ---------- */
 let bufferQueue: AudioBuffer[] = [];
 let buffering = true; // initially buffering until ~0.25s of audio is ready
-const PREBUFFER_SECONDS = 5;
+const MIN_QUEUE_SEC = 1;
+const SAFE_MARGIN_SEC = 0.15; // if less than 150ms left, queue more
 
 function playBufferedAudio() {
   if (!audioCtx || bufferQueue.length === 0) return;
 
-  // Start scheduling once we have at least 0.25s of audio
-  const totalBuffered = bufferQueue.reduce((sum, b) => sum + b.duration, 0);
-  if (buffering && totalBuffered < PREBUFFER_SECONDS) return;
+  const bufferedSec = nextStartTime - audioCtx.currentTime;
 
-  buffering = false;
-
-  while (bufferQueue.length > 0) {
+  // If not enough audio is scheduled, push more
+  while (bufferQueue.length > MIN_QUEUE_SEC && bufferedSec < SAFE_MARGIN_SEC) {
     const buffer = bufferQueue.shift()!;
     const src = audioCtx.createBufferSource();
     src.buffer = buffer;
     src.connect(audioCtx.destination);
-
-    const current = audioCtx.currentTime;
-    if (nextStartTime < current) nextStartTime = current;
     src.start(nextStartTime);
     nextStartTime += buffer.duration;
   }
