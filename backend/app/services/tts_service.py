@@ -4,6 +4,7 @@ import sys
 import uuid
 import numpy as np
 import soundfile as sf
+import torch
 
 # Add neutts-air to Python path
 vendor_path = os.path.join(os.path.dirname(__file__), 'vendor', 'neutts-air')
@@ -14,6 +15,7 @@ from neuttsair.neutts import NeuTTSAir
 
 REF_AUDIO = "ref/voice.mp3"
 REF_TEXT = "ref/voice.txt"
+REF_CODES = "ref/encoded.pt"
 OUTPUT_DIR = "output_audio"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -23,12 +25,13 @@ print("🔊 Loading custom voice...")
 tts_model = NeuTTSAir(
     backbone_repo="neuphonic/neutts-air-q4-gguf",
     backbone_device="cpu",
-    codec_repo="neuphonic/neucodec",
+    codec_repo="neuphonic/neucodec-onnx-decoder",
     codec_device="cpu"
 )
 
 # Encode reference audio
-ref_codes = tts_model.encode_reference(REF_AUDIO)
+#ref_codes = tts_model.encode_reference(REF_AUDIO)
+ref_codes = torch.load(REF_CODES)
 ref_text = open(REF_TEXT, "r", encoding="utf-8").read().strip()
 print("✅ Voice loaded successfully!")
 
