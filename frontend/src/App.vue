@@ -17,7 +17,7 @@ function onAudio(url: string) {
 </script>
 
 <template>
-  <h1>AI Talk Partner</h1>
+  <h1 class="text-4xl font-bold justify-center flex">AI Talk Partner</h1>
   <VoiceRecorder @audio="onAudio" />
   <Chat :audioUrl="audioUrl ?? undefined" />
 </template>
