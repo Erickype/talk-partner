@@ -71,6 +71,15 @@ ollama pull phi3
 ollama serve
 ```
 
+7. Install pnpm, refer to https://pnpm.io/installation
+
+7. Run the frontend in a new terminal:
+```
+cd frontend
+pnpm i
+pnpm run dev
+```
+
 ## Docker Support
 Docker containerization is planned for easier deployment. 
 Stay tuned for updates.
