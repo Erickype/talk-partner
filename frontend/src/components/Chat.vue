@@ -70,7 +70,7 @@ function playChunk(buffer: AudioBuffer) {
 /* ---------- Playback Queue with Pre-buffer ---------- */
 let bufferQueue: AudioBuffer[] = [];
 let buffering = true; // initially buffering until ~0.25s of audio is ready
-const MIN_QUEUE_SEC = 1;
+const MIN_QUEUE_SEC = 3.0; // aim to keep at least 3s buffered
 const SAFE_MARGIN_SEC = 0.15; // if less than 150ms left, queue more
 
 function playBufferedAudio() {
