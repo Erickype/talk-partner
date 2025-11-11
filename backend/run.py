@@ -2,6 +2,7 @@
 import uvicorn
 import sys
 import os
+from pathlib import Path
 
 def setup_vendor_paths():
     """Add vendor packages to Python path."""
@@ -15,6 +16,10 @@ def setup_vendor_paths():
         print(f"✅ Added neutts-air to Python path: {neutts_path}")
     else:
         print(f"⚠️  neutts-air not found at: {neutts_path}")
+
+    # Add the project root to Python path
+    project_root = Path(__file__).parent.parent
+    sys.path.insert(0, str(project_root))
 
 
 if __name__ == "__main__":
