@@ -43,8 +43,9 @@ The application was tested using the following:
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/Erickype/talk-partner
 cd talk-partner
+git submodule update --init
 ```
 
 2. Set up the backend:
