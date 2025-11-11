@@ -48,7 +48,9 @@ cd talk-partner
 git submodule update --init
 ```
 
-2. Set up the backend:
+2. Install `espeak` (required dependency) refer to https://github.com/neuphonic/neutts-air?tab=readme-ov-file#get-started
+
+3. Set up the backend:
 ```bash
 cd backend
 python -m venv venv
@@ -56,9 +58,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-3. Run application:
+4. Run application:
 ```bash
 python run.py
+```
+
+5. Install Ollama to run Phi3 model refer to: https://ollama.com/download
+
+6. The application uses Phi3 model to generate conversation, pull the model and launch Ollama:
+```
+ollama pull phi3
+ollama serve
 ```
 
 ## Docker Support
