@@ -29,7 +29,11 @@ This tool is specifically designed for English learners who spend time alone and
 - **phonemizer** - Phonetic transcription
 
 ### Frontend
-- (To be implemented with modern design)
+- **Vue 3** - Progressive JavaScript framework
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Next-generation frontend build tool
+- **pnpm** - Fast, disk space efficient package manager
+- Modern UI components (in development)
 
 ## 🚀 Run Instructions
 
