@@ -70,23 +70,52 @@ function playChunk(buffer: AudioBuffer) {
 /* ---------- Playback Queue with Pre-buffer ---------- */
 let bufferQueue: AudioBuffer[] = [];
 let buffering = true; // initially buffering until ~0.25s of audio is ready
-const MIN_QUEUE_SEC = 3.0; // aim to keep at least 3s buffered
-const SAFE_MARGIN_SEC = 0.15; // if less than 150ms left, queue more
+const MIN_QUEUE_SEC = 5.0; // aim to keep at least 3s buffered
 
 function playBufferedAudio() {
+  // Optionally pass `flush=true` to force scheduling of all remaining buffers
+  // (used when we receive an audio_end signal).
+  return playBufferedAudioInternal(false);
+}
+
+function playBufferedAudioInternal(flush: boolean) {
   if (!audioCtx || bufferQueue.length === 0) return;
 
-  const bufferedSec = nextStartTime - audioCtx.currentTime;
+  const current = audioCtx.currentTime;
+  if (nextStartTime < current) nextStartTime = current;
 
-  // If not enough audio is scheduled, push more
-  while (bufferQueue.length > MIN_QUEUE_SEC && bufferedSec < SAFE_MARGIN_SEC) {
+  // seconds already scheduled for playback
+  let bufferedSec = nextStartTime - current;
+
+  // compute how many seconds are queued but not yet scheduled
+  const queuedSec = bufferQueue.reduce((s, b) => s + b.duration, 0);
+
+  const START_THRESHOLD_SEC = MIN_QUEUE_SEC; // start playing once we have this much queued
+
+  // If we're still buffering, only start once we've accumulated a small threshold
+  if (buffering) {
+    if (!flush && queuedSec < START_THRESHOLD_SEC) {
+      // still buffering, not enough to start
+      return;
+    }
+    // we've met the start threshold (or are flushing) -> start playback
+    buffering = false;
+    status.value = "Playing audio…";
+  }
+
+  // Schedule buffers while we need more scheduled audio, or schedule everything if flushing
+  while (bufferQueue.length > 0 && (flush || bufferedSec < MIN_QUEUE_SEC)) {
     const buffer = bufferQueue.shift()!;
     const src = audioCtx.createBufferSource();
     src.buffer = buffer;
     src.connect(audioCtx.destination);
     src.start(nextStartTime);
     nextStartTime += buffer.duration;
+    bufferedSec += buffer.duration;
   }
+
+  // If we flushed everything, reset buffering so subsequent streams start in buffering mode
+  if (flush && bufferQueue.length === 0) buffering = true;
 }
 
 /* ---------- WebSocket Handling ---------- */
@@ -117,7 +146,8 @@ function connect() {
           status.value = "Receiving audio…";
           break;
         case "audio_end":
-          playBufferedAudio(); // flush remaining
+          // flush remaining buffers even if we don't have MIN_QUEUE_SEC
+          playBufferedAudioInternal(true);
           status.value = "Playback complete";
           break;
       }
