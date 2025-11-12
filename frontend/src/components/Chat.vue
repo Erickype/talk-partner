@@ -14,6 +14,7 @@
     <div v-if="audioUrl" class="mt-4">
       <p class="text-sm text-gray-400">Recorded audio:</p>
       <audio :src="audioUrl" controls></audio>
+      <p v-if="responseURL" class="text-sm text-gray-400">Generated audio:</p>
       <audio v-if="responseURL" :src="responseURL" controls></audio>
     </div>
   </div>
@@ -70,7 +71,10 @@ function playChunk(buffer: AudioBuffer) {
 /* ---------- Playback Queue with Pre-buffer ---------- */
 let bufferQueue: AudioBuffer[] = [];
 let buffering = true; // initially buffering until ~0.25s of audio is ready
-const MIN_QUEUE_SEC = 5.0; // aim to keep at least 3s buffered
+const MIN_QUEUE_SEC = 5.0; // aim to keep at least ~5s buffered
+
+// captured buffers for replay/export
+const capturedBuffers: AudioBuffer[] = [];
 
 function playBufferedAudio() {
   // Optionally pass `flush=true` to force scheduling of all remaining buffers
@@ -142,12 +146,24 @@ function connect() {
         case "audio_start":
           nextStartTime = audioCtx!.currentTime;
           bufferQueue = [];
-          buffering = true;
+              buffering = true;
+              // clear any previous captured buffers for a fresh replay
+              capturedBuffers.length = 0;
+              if (responseURL.value) {
+                URL.revokeObjectURL(responseURL.value);
+                responseURL.value = "";
+              }
           status.value = "Receiving audio…";
           break;
         case "audio_end":
           // flush remaining buffers even if we don't have MIN_QUEUE_SEC
           playBufferedAudioInternal(true);
+          // automatically export captured audio so the audio player appears
+          try {
+            exportCaptured();
+          } catch (e) {
+            // exportCaptured already logs errors; ignore here
+          }
           status.value = "Playback complete";
           break;
       }
@@ -159,6 +175,8 @@ function connect() {
       const arr = await event.data.arrayBuffer();
       const buf = await pcmToAudioBuffer(arr);
       bufferQueue.push(buf);
+    // also save for replay
+    capturedBuffers.push(buf);
       playBufferedAudio(); // check if enough audio to start
     }
   };
@@ -202,6 +220,90 @@ onUnmounted(() => {
   ws?.close();
   audioCtx?.close();
 });
+
+/* ---------- Capture / Export Replay ---------- */
+
+function floatTo16BitPCM(output: DataView, offset: number, input: Float32Array) {
+  for (let i = 0; i < input.length; i++, offset += 2) {
+    const v = input[i] ?? 0;
+    const s = Math.max(-1, Math.min(1, v));
+    output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+}
+
+function writeString(view: DataView, offset: number, str: string) {
+  for (let i = 0; i < str.length; i++) {
+    view.setUint8(offset + i, str.charCodeAt(i));
+  }
+}
+
+function audioBuffersToWav(buffers: AudioBuffer[]): Blob {
+  if (buffers.length === 0) throw new Error("No buffers to export");
+
+  const first = buffers[0]!;
+  const sampleRate = first.sampleRate;
+  const totalLength = buffers.reduce((s, b) => s + b.length, 0);
+
+  const bytesPerSample = 2;
+  const blockAlign = 1 * bytesPerSample; // mono
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = totalLength * bytesPerSample;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  /* RIFF identifier */
+  writeString(view, 0, 'RIFF');
+  /* file length */
+  view.setUint32(4, 36 + dataSize, true);
+  /* RIFF type */
+  writeString(view, 8, 'WAVE');
+  /* format chunk identifier */
+  writeString(view, 12, 'fmt ');
+  /* format chunk length */
+  view.setUint32(16, 16, true);
+  /* sample format (raw) */
+  view.setUint16(20, 1, true);
+  /* channel count */
+  view.setUint16(22, 1, true);
+  /* sample rate */
+  view.setUint32(24, sampleRate, true);
+  /* byte rate (sample rate * block align) */
+  view.setUint32(28, byteRate, true);
+  /* block align (channel count * bytes per sample) */
+  view.setUint16(32, blockAlign, true);
+  /* bits per sample */
+  view.setUint16(34, 16, true);
+  /* data chunk identifier */
+  writeString(view, 36, 'data');
+  /* data chunk length */
+  view.setUint32(40, dataSize, true);
+
+  // write PCM samples
+  let offset = 44;
+  for (const b of buffers) {
+    const ch = b.getChannelData(0);
+    floatTo16BitPCM(view, offset, ch);
+    offset += ch.length * bytesPerSample;
+  }
+
+  return new Blob([view], { type: 'audio/wav' });
+}
+
+function exportCaptured() {
+  try {
+    if (capturedBuffers.length === 0) {
+      console.warn('No captured audio to export');
+      return;
+    }
+    const wav = audioBuffersToWav(capturedBuffers);
+    if (responseURL.value) URL.revokeObjectURL(responseURL.value);
+    responseURL.value = URL.createObjectURL(wav);
+    status.value = 'Replay saved';
+  } catch (e) {
+    console.error('Failed to export captured audio', e);
+    status.value = 'Export failed';
+  }
+}
 </script>
 
 <style scoped>
